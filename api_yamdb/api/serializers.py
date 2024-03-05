@@ -28,15 +28,17 @@ class SignUpSerializer(serializers.ModelSerializer):
         model = CustomUser 
         fields = ('email', 'username')
 
-    def validate_email(self, value):
-        if CustomUser.objects.filter(email=value).exists():
+    def validate(self, attrs):
+        email = attrs.get('email')
+        username = attrs.get('username')
+        existing_user = CustomUser.objects.filter(email=email, username=username).first()
+        if existing_user:
+            return attrs
+        if CustomUser.objects.filter(email=email).exists():
             raise serializers.ValidationError("Email must be unique.")
-        return value
-
-    def validate_username(self, value):
-        if CustomUser.objects.filter(username=value).exists():
+        if CustomUser.objects.filter(username=username).exists():
             raise serializers.ValidationError("Username must be unique.")
-        return value
+        return attrs
 
     def create(self, validated_data):
         email = validated_data.get('email')
