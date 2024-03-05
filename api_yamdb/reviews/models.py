@@ -16,7 +16,7 @@ class CustomUser(AbstractUser):
     )
     email = models.EmailField(
         verbose_name="email_address",
-        max_length=255,
+        max_length=254,
         unique=True
     )
     role = models.CharField(
