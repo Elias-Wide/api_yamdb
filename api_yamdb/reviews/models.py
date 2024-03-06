@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+
 from .validators import validate_year
 
 
@@ -58,3 +60,28 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class CustomUser(AbstractUser):
+    USER_ROLE_CHOICES = (
+        ('user', 'User'),
+        ('moderator', 'Moderator'),
+        ('admin', 'Admin'),
+    )
+
+    confirmation_code = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True
+    )
+    email = models.EmailField(
+        verbose_name="email_address",
+        max_length=254,
+        unique=True
+    )
+    role = models.CharField(
+        max_length=20, 
+        choices=USER_ROLE_CHOICES, 
+        default='user'
+    )
+    bio = models.TextField(blank=True)
