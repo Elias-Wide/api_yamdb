@@ -1,12 +1,43 @@
 from rest_framework import status, views, generics, permissions
+from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
+                                   ListModelMixin)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from reviews.models import CustomUser
 from api.serializers import (
-    SignUpSerializer, GetTokenSerializer, UserProfileSerializer
+    CategorySerializer, 
+    GenreSerializer,
+    TitleCreateSerializer,
+    TitleReadSerializer,
+    SignUpSerializer,
+    GetTokenSerializer,
+    UserProfileSerializer
 )
+from reviews.models import Category, CustomUser, Genre, Title
+
+
+class TitleViewSet(ModelViewSet):
+    queryset = Title.objects.all()
+    serializer_class = TitleCreateSerializer
+
+    def resolve_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleReadSerializer
+        return TitleCreateSerializer
+
+
+class GenreViewSet(CreateModelMixin, ListModelMixin,
+                   DestroyModelMixin, GenericViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+
+
+class CategoryViewSet(CreateModelMixin, ListModelMixin,
+                      DestroyModelMixin, GenericViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
 
 
 class SignUpView(generics.CreateAPIView):
@@ -58,4 +89,3 @@ class UserProfileView(views.APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
