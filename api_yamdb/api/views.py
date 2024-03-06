@@ -1,4 +1,4 @@
-from rest_framework import status, views, generics, permissions
+from rest_framework import status, views, viewsets, generics, permissions
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.permissions import IsAuthenticated
@@ -13,6 +13,7 @@ from api.serializers import (
     TitleReadSerializer,
     SignUpSerializer,
     GetTokenSerializer,
+    UsersSerializer,
     UserProfileSerializer
 )
 from reviews.models import Category, CustomUser, Genre, Title
@@ -69,7 +70,7 @@ class TokenView(views.APIView):
 
 
 class UserProfileView(views.APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
@@ -89,3 +90,8 @@ class UserProfileView(views.APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+  
+class UsersViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = UsersSerializer
+    permission_classes = (permissions.IsAdminUser,)
