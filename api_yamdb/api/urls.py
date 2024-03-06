@@ -3,7 +3,9 @@ from rest_framework.routers import SimpleRouter
 
 from api.views import (
     CategoryViewSet,
+    CommentViewSet,
     GenreViewSet,
+    ReviewViewSet,
     SignUpView,
     TitleViewSet,
     TokenView,
@@ -21,7 +23,12 @@ router.register('categories', CategoryViewSet, basename='сategories')
 router.register('titles', TitleViewSet, basename='titles')
 router.register('genres', GenreViewSet, basename='genres')
 router.register(r'users', UsersViewSet, basename='users')
-
+router.register(r'titles/{title_id}', ReviewViewSet, basename='reviews')
+router.register(
+    r'titles/{title_id}/reviews/{review_id}',
+    CommentViewSet,
+    basename='comments'
+)
 
 urlpatterns = [
     path(API_VERSION, include(router.urls)),

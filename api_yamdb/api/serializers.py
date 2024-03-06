@@ -1,11 +1,21 @@
-import string, secrets
+import string
+import secrets
 
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from reviews.models import Category, CustomUser, Genre, Title
+from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
+from reviews.models import (
+    Category,
+    Comment,
+    CustomUser,
+    Genre,
+    Review,
+    Title
+)
+
 
 def generate_confirmation_code(length=6):
     alphabet = string.ascii_letters + string.digits
@@ -13,9 +23,9 @@ def generate_confirmation_code(length=6):
 
 
 def send_confirmation_email(email, confirmation_code):
-    send_mail(subject='Confirmation Code', 
-              message=f'Your confirmation code is: {confirmation_code}', 
-              from_email=settings.EMAIL_HOST_USER, 
+    send_mail(subject='Confirmation Code',
+              message=f'Your confirmation code is: {confirmation_code}',
+              from_email=settings.EMAIL_HOST_USER,
               recipient_list=[email])
 
 
@@ -24,7 +34,7 @@ class SignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=150, required=True)
 
     class Meta:
-        model = CustomUser 
+        model = CustomUser
         fields = ('email', 'username')
 
     def validate(self, attrs):
@@ -43,7 +53,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         email = validated_data.get('email')
         username = validated_data.get('username')
         existing_user = CustomUser.objects.filter(email=email, username=username).first()
-        confirmation_code = generate_confirmation_code() 
+        confirmation_code = generate_confirmation_code()
         if existing_user:
             existing_user.confirmation_code = confirmation_code
             existing_user.save()
@@ -61,15 +71,15 @@ class GetTokenSerializer(serializers.ModelSerializer):
     confirmation_code = serializers.CharField(max_length=6, required=True)
 
     class Meta:
-        model = CustomUser 
+        model = CustomUser
         fields = ('username', 'confirmation_code')
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = CustomUser 
-        fields = ('username', 'email', 'first_name', 
+        model = CustomUser
+        fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
 
     def validate(self, attrs):
@@ -84,8 +94,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UsersSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = CustomUser 
-        fields = ('username', 'email', 'first_name', 
+        model = CustomUser
+        fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
 
 
@@ -131,3 +141,26 @@ class TitleReadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = '__all__'
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        model = Review
+
+    def validate_score(self, value):
+        if not (MIN_SCORE_VALUE <= value <= MAX_SCORE_VALUE):
+            raise serializers.ValidationError(
+                'The score must be in the range from 1 to 10!'
+            )
+        return value
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        fields = ('id', 'text', 'author', 'pub_date')
+        model = Comment
