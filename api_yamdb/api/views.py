@@ -1,11 +1,10 @@
-from rest_framework import status, views, generics, permissions
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status, views, viewsets, generics, permissions
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from reviews.models import CustomUser
 from api.serializers import (
-    SignUpSerializer, GetTokenSerializer, UserProfileSerializer
+    SignUpSerializer, GetTokenSerializer, UserProfileSerializer, UsersSerializer
 )
 
 
@@ -38,7 +37,7 @@ class TokenView(views.APIView):
 
 
 class UserProfileView(views.APIView):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (permissions.IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
@@ -58,4 +57,10 @@ class UserProfileView(views.APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
     
+class UsersViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = UsersSerializer
+    permission_classes = (permissions.IsAdminUser,)
+

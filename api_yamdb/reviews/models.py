@@ -25,3 +25,4 @@ class CustomUser(AbstractUser):
         default='user'
     )
     bio = models.TextField(blank=True)
+

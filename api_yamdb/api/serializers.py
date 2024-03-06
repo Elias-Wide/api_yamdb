@@ -81,3 +81,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 )
         return attrs
 
+class UsersSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser 
+        fields = ('username', 'email', 'first_name', 
+                  'last_name', 'bio', 'role')
+
+
