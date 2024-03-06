@@ -1,12 +1,11 @@
 import string, secrets
 
-from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.conf import settings
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
-from reviews.models import CustomUser 
-
+from reviews.models import Category, CustomUser, Genre, Title
 
 def generate_confirmation_code(length=6):
     alphabet = string.ascii_letters + string.digits
@@ -81,6 +80,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 )
         return attrs
 
+
 class UsersSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -89,3 +89,45 @@ class UsersSerializer(serializers.ModelSerializer):
                   'last_name', 'bio', 'role')
 
 
+class CategorySerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Category
+        fields = ('name', 'slug')
+
+
+class GenreSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Genre
+        fields = ('name', 'slug')
+
+
+class TitleCreateSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(),
+        slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(),
+        slug_field='slug',
+        many=True,
+        required=False
+    )
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
+class TitleReadSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(
+        read_only=True,
+        many=True
+    )
+    rating = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Title
+        fields = '__all__'
