@@ -114,7 +114,7 @@ class UsersViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = (AuthorOrReadOnly, Moderator)
+    permission_classes = (AuthorOrReadOnly,)
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
@@ -123,6 +123,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
             title_id=self.get_title(self.kwargs['title_id'])
         )
 
+    def get_permissions(self):
+        if self.request.user.role == 'moderator':
+            return (Moderator(),)
+        return super().get_permissions()
+
     @staticmethod
     def get_title(title_id):
         return get_object_or_404(Title, id=title_id)
@@ -130,7 +135,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (AuthorOrReadOnly, Moderator)
+    permission_classes = (AuthorOrReadOnly,)
     pagination_class = PageNumberPagination
 
     def get_queryset(self):
@@ -139,7 +144,12 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = self.get_review(self.kwargs['review_id'])
-        serializer.save(author=self.request.user, review_id=review)
+        serializer.save(author=self.request.user, review_id=review.id)
+
+    def get_permissions(self):
+        if self.request.user.role == 'moderator':
+            return (Moderator(),)
+        return super().get_permissions()
 
     @staticmethod
     def get_review(review_id):

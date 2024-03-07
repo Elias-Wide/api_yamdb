@@ -144,7 +144,11 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    author = serializers.StringRelatedField(read_only=True)
+    author = serializers.SlugRelatedField(
+        queryset=CustomUser.objects.all(),
+        slug_field='username',
+        default=serializers.CurrentUserDefault()
+    )
 
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
@@ -159,7 +163,11 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.StringRelatedField(read_only=True)
+    author = serializers.SlugRelatedField(
+        queryset=CustomUser.objects.all(),
+        slug_field='username',
+        default=serializers.CurrentUserDefault()
+    )
 
     class Meta:
         fields = ('id', 'text', 'author', 'pub_date')
