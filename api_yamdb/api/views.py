@@ -144,7 +144,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = self.get_review(self.kwargs['review_id'])
-        serializer.save(author=self.request.user, review_id=review.id)
+        serializer.save(author=self.request.user, review_id=review)
 
     def get_permissions(self):
         if self.request.user.role == 'moderator':
