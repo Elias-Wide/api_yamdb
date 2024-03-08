@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 
+from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
 from .validators import validate_year
 
 
@@ -70,8 +72,8 @@ class CustomUser(AbstractUser):
     )
 
     confirmation_code = models.CharField(
-        max_length=20, 
-        null=True, 
+        max_length=20,
+        null=True,
         blank=True
     )
     email = models.EmailField(
@@ -80,9 +82,57 @@ class CustomUser(AbstractUser):
         unique=True
     )
     role = models.CharField(
-        max_length=20, 
-        choices=USER_ROLE_CHOICES, 
+        max_length=20,
+        choices=USER_ROLE_CHOICES,
         default='user'
     )
     bio = models.TextField(blank=True)
 
+
+class Review(models.Model):
+    title_id = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        verbose_name="title"
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='reviews'
+    )
+    score = models.IntegerField(
+        validators=[
+            MaxValueValidator(MAX_SCORE_VALUE),
+            MinValueValidator(MIN_SCORE_VALUE)
+        ]
+    )
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Отзыв"
+        verbose_name_plural = "Отзывы"
+
+    def str(self):
+        return self.text
+
+
+class Comment(models.Model):
+    review_id = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+    )
+    text = models.TextField()
+    author = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+    )
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Комментарий"
+        verbose_name_plural = "комментарии"
+        default_related_name = 'comments'
+
+    def str(self):
+        return self.text
