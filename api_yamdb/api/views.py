@@ -3,12 +3,18 @@ from rest_framework import status, views, viewsets, generics, permissions
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.permissions import AuthorOrReadOnly, Moderator
+from api.permissions import (
+IsAdmin,
+IsAuthenticated,
+IsAuthorOrReadOnly,
+IsModeratorOrReadOnly,
+IsAdminOrReadOnly,
+IsAdminOrModeratorOrAuthor
+) 
 from api.serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -34,6 +40,7 @@ from reviews.models import (
 class TitleViewSet(ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleCreateSerializer
+    permission_classes = (IsAdminOrReadOnly,)
 
     def resolve_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -45,12 +52,14 @@ class GenreViewSet(CreateModelMixin, ListModelMixin,
                    DestroyModelMixin, GenericViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class CategoryViewSet(CreateModelMixin, ListModelMixin,
                       DestroyModelMixin, GenericViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = (IsAdminOrReadOnly,)
 
 
 class SignUpView(generics.CreateAPIView):
@@ -108,13 +117,12 @@ class UserProfileView(views.APIView):
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UsersSerializer
-    permission_classes = (permissions.IsAdminUser,)
+    permission_classes = (IsAdmin,)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = (AuthorOrReadOnly,)
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
@@ -124,10 +132,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         )
 
     def get_permissions(self):
-        if self.request.user.role == 'moderator':
-            return (Moderator(),)
-        return super().get_permissions()
-
+        if self.action == 'create':
+            return (permissions.IsAuthenticated(),)
+        elif self.action in ['partial_update', 'destroy']:
+            return (IsAdminOrModeratorOrAuthor(),)
+        return (permissions.AllowAny(),)
+   
     @staticmethod
     def get_title(title_id):
         return get_object_or_404(Title, id=title_id)
@@ -135,7 +145,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (AuthorOrReadOnly,)
     pagination_class = PageNumberPagination
 
     def get_queryset(self):
@@ -147,9 +156,11 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, review_id=review)
 
     def get_permissions(self):
-        if self.request.user.role == 'moderator':
-            return (Moderator(),)
-        return super().get_permissions()
+        if self.action == 'create':
+            return (permissions.IsAuthenticated(),)
+        elif self.action in ['partial_update', 'destroy']:
+            return (IsAdminOrModeratorOrAuthor(),)
+        return (permissions.AllowAny(),)
 
     @staticmethod
     def get_review(review_id):
