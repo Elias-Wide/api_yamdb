@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status, views, viewsets, generics, permissions 
+from rest_framework import status, views, viewsets, generics, permissions
+from rest_framework.filters import SearchFilter
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.pagination import PageNumberPagination
@@ -8,10 +9,11 @@ from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.permissions import (
-IsAdmin,
-IsAdminOrReadOnly,
-IsAdminOrModeratorOrAuthor
-) 
+    IsAdmin,
+    IsAdminOrReadOnly,
+    IsAdminOrModeratorOrAuthor,
+    IsAuthenticated
+)
 from api.serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -50,6 +52,8 @@ class GenreViewSet(CreateModelMixin, ListModelMixin,
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('name', )
 
 
 class CategoryViewSet(CreateModelMixin, ListModelMixin,
@@ -57,6 +61,13 @@ class CategoryViewSet(CreateModelMixin, ListModelMixin,
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('name', )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SignUpView(generics.CreateAPIView):
@@ -80,7 +91,10 @@ class TokenView(views.APIView):
                 user.confirmation_code = None
                 user.save()
                 return Response(
-                    {'refresh': str(refresh), 'access': str(refresh.access_token)},
+                    {
+                        'refresh': str(refresh),
+                        'access': str(refresh.access_token)
+                    },
                     status=status.HTTP_200_OK)
             return Response(
                 {'error': 'Invalid username or verification code'},
@@ -134,7 +148,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         elif self.action in ['partial_update', 'destroy']:
             return (IsAdminOrModeratorOrAuthor(),)
         return (permissions.AllowAny(),)
-   
+
     @staticmethod
     def get_title(title_id):
         return get_object_or_404(Title, id=title_id)

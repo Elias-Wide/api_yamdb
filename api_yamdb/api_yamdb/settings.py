@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'api',
     'reviews',
+    'django_filters'
 ]
 
 AUTH_USER_MODEL = 'reviews.CustomUser'
