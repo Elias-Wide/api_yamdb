@@ -4,7 +4,7 @@ import secrets
 from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, MethodNotAllowed
 
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
 from reviews.models import (
@@ -172,3 +172,4 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ('id', 'text', 'author', 'pub_date')
         model = Comment
+

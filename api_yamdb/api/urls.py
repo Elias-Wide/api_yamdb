@@ -36,3 +36,4 @@ urlpatterns = [
     path(API_VERSION + 'users/me/', UserProfileView.as_view(), name='user_profile'),
     path(API_VERSION, include(router.urls))
 ]
+

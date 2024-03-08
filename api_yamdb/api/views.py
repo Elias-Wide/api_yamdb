@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status, views, viewsets, generics, permissions
+from rest_framework import status, views, viewsets, generics, permissions 
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.pagination import PageNumberPagination
@@ -9,9 +9,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.permissions import (
 IsAdmin,
-IsAuthenticated,
-IsAuthorOrReadOnly,
-IsModeratorOrReadOnly,
 IsAdminOrReadOnly,
 IsAdminOrModeratorOrAuthor
 ) 
