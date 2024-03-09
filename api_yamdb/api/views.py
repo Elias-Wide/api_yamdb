@@ -102,7 +102,7 @@ class TokenView(views.APIView):
 
 
 class UserProfileView(views.APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
