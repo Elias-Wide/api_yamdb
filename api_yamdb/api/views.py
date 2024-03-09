@@ -92,8 +92,7 @@ class TokenView(views.APIView):
                 user.save()
                 return Response(
                     {
-                        'refresh': str(refresh),
-                        'access': str(refresh.access_token)
+                        'token': str(refresh.access_token)
                     },
                     status=status.HTTP_200_OK)
             return Response(
