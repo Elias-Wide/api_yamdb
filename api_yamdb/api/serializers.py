@@ -154,6 +154,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
+    def update(self, instance, validated_data):
+        if self.context['request'].method == 'PUT':
+            raise MethodNotAllowed(method='PUT')
+        return super().update(instance, validated_data)
+
     def validate_score(self, value):
         if not (MIN_SCORE_VALUE <= value <= MAX_SCORE_VALUE):
             raise serializers.ValidationError(
@@ -173,3 +178,7 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'pub_date')
         model = Comment
 
+    def update(self, instance, validated_data):
+        if self.context['request'].method == 'PUT':
+            raise MethodNotAllowed(method='PUT')
+        return super().update(instance, validated_data)
