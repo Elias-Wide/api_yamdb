@@ -118,7 +118,7 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitleCreateSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
-        slug_field='slug'
+        slug_field='slug',
     )
     genre = serializers.SlugRelatedField(
         queryset=Genre.objects.all(),
@@ -131,10 +131,6 @@ class TitleCreateSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
-    # def update(self, instance, validated_data):
-    #     if self.context['request'].method == 'PUT':
-    #         raise MethodNotAllowed(method='PUT')
-    #     return super().update(instance, validated_data)
 
 class TitleReadSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
@@ -198,8 +194,3 @@ class CommentSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
     class Meta:
         fields = ('id', 'text', 'author', 'pub_date')
         model = Comment
-
-    # def update(self, instance, validated_data):
-    #     if self.context['request'].method == 'PUT':
-    #         raise MethodNotAllowed(method='PUT')
-    #     return super().update(instance, validated_data)

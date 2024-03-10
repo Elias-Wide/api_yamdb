@@ -12,6 +12,7 @@ from api.permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
     IsAdminOrModeratorOrAuthor,
+    IsAuthorOrReadOnly,
     IsAuthenticated
 )
 from api.serializers import (
@@ -38,10 +39,9 @@ from reviews.models import (
 
 class TitleViewSet(ModelViewSet):
     queryset = Title.objects.all()
-    serializer_class = TitleCreateSerializer
     permission_classes = (IsAdminOrReadOnly,)
 
-    def resolve_serializer_class(self):
+    def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitleCreateSerializer
@@ -178,8 +178,10 @@ class CommentViewSet(viewsets.ModelViewSet):
         serializer.save(author=self.request.user, review=review)
 
     def get_permissions(self):
+        if self.request.method == 'POST':
+            return (IsAuthenticated(),)
         if self.action == 'create':
-            return (permissions.IsAuthenticated(),)
+            return (IsAuthorOrReadOnly(),)
         elif self.action in ['partial_update', 'destroy']:
             return (IsAdminOrModeratorOrAuthor(),)
         return (permissions.AllowAny(),)
