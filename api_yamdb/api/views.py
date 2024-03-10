@@ -136,9 +136,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
+        self.add_title_rating(serializer.validated_data['score'])
         serializer.save(
             author=self.request.user,
-            title_id=self.get_title(self.kwargs['title_id'])
+            title=self.get_title(self.kwargs['title_id'])
         )
 
     def get_permissions(self):
@@ -147,6 +148,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
         elif self.action in ['partial_update', 'destroy']:
             return (IsAdminOrModeratorOrAuthor(),)
         return (permissions.AllowAny(),)
+
+    def add_title_rating(self, score):
+        title = Title.objects.get(id=self.kwargs['title_id'])
+        if title.rating is None:
+            title.rating = score
+            title.save()
+        all_scores = [
+            review.score for review in Review.objects.filter(title=title)
+        ]
+        title.rating = (sum(all_scores) + score) / (len(all_scores) + 1)
+        title.save()
 
     @staticmethod
     def get_title(title_id):
@@ -163,7 +175,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = self.get_review(self.kwargs['review_id'])
-        serializer.save(author=self.request.user, review_id=review)
+        serializer.save(author=self.request.user, review=review)
 
     def get_permissions(self):
         if self.action == 'create':

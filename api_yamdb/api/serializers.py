@@ -3,10 +3,12 @@ import secrets
 
 from django.core.mail import send_mail
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError, MethodNotAllowed
 
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
+from api.mixins import PutNotAllowedMixin
 from reviews.models import (
     Category,
     Comment,
@@ -113,7 +115,7 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TitleCreateSerializer(serializers.ModelSerializer):
+class TitleCreateSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug'
@@ -129,6 +131,10 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
+    # def update(self, instance, validated_data):
+    #     if self.context['request'].method == 'PUT':
+    #         raise MethodNotAllowed(method='PUT')
+    #     return super().update(instance, validated_data)
 
 class TitleReadSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
@@ -166,8 +172,23 @@ class ReviewSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, data):
 
-class CommentSerializer(serializers.ModelSerializer):
+        title = get_object_or_404(
+            Title, id=self.context['view'].kwargs['title_id']
+        )
+        user = self.context['request'].user
+        if (
+            Review.objects.filter(title=title, author=user).exists()
+            and self.context['request'].method == 'POST'
+        ):
+            raise serializers.ValidationError(
+                'You can leave only one review for a title!'
+            )
+        return data
+
+
+class CommentSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         queryset=CustomUser.objects.all(),
         slug_field='username',
@@ -178,7 +199,7 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'pub_date')
         model = Comment
 
-    def update(self, instance, validated_data):
-        if self.context['request'].method == 'PUT':
-            raise MethodNotAllowed(method='PUT')
-        return super().update(instance, validated_data)
+    # def update(self, instance, validated_data):
+    #     if self.context['request'].method == 'PUT':
+    #         raise MethodNotAllowed(method='PUT')
+    #     return super().update(instance, validated_data)

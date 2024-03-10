@@ -95,6 +95,11 @@ class Title(models.Model):
         related_name='titles',
         verbose_name='Жанр'
     )
+    rating = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name='Рейтинг'
+    )
 
     class Meta:
         verbose_name = 'Произведение'
@@ -105,10 +110,10 @@ class Title(models.Model):
 
 
 class Review(models.Model):
-    title_id = models.ForeignKey(
+    title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        verbose_name="title"
+        verbose_name="Произведение"
     )
     text = models.TextField()
     author = models.ForeignKey(
@@ -127,13 +132,14 @@ class Review(models.Model):
     class Meta:
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
+        unique_together = ('author', 'title')
 
     def str(self):
         return self.text
 
 
 class Comment(models.Model):
-    review_id = models.ForeignKey(
+    review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
     )
@@ -151,4 +157,3 @@ class Comment(models.Model):
 
     def str(self):
         return self.text
-
