@@ -1,9 +1,49 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.contrib.auth.models import BaseUserManager
 
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
 from .validators import validate_year
+
+
+class CustomUser(AbstractUser):
+    USER_ROLE_CHOICES = (
+        ('user', 'User'),
+        ('moderator', 'Moderator'),
+        ('admin', 'Admin'),
+    )
+
+    confirmation_code = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True
+    )
+    email = models.EmailField(
+        verbose_name="email_address",
+        max_length=254,
+        unique=True
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=USER_ROLE_CHOICES,
+        default='user'
+    )
+    bio = models.TextField(blank=True)
+
+
+class CustomUserManager(BaseUserManager):
+
+    def create_user(self, email, username, password=None, **extra_fields):
+        user = self.model(email=email, username=username, **extra_fields)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, username, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
+        return self.create_user(email, username, password, **extra_fields)
 
 
 class Category(models.Model):
@@ -55,6 +95,11 @@ class Title(models.Model):
         related_name='titles',
         verbose_name='Жанр'
     )
+    rating = models.IntegerField(
+        null=True,
+        blank=True,
+        verbose_name='Рейтинг'
+    )
 
     class Meta:
         verbose_name = 'Произведение'
@@ -64,36 +109,11 @@ class Title(models.Model):
         return self.name
 
 
-class CustomUser(AbstractUser):
-    USER_ROLE_CHOICES = (
-        ('user', 'User'),
-        ('moderator', 'Moderator'),
-        ('admin', 'Admin'),
-    )
-
-    confirmation_code = models.CharField(
-        max_length=20,
-        null=True,
-        blank=True
-    )
-    email = models.EmailField(
-        verbose_name="email_address",
-        max_length=254,
-        unique=True
-    )
-    role = models.CharField(
-        max_length=20,
-        choices=USER_ROLE_CHOICES,
-        default='user'
-    )
-    bio = models.TextField(blank=True)
-
-
 class Review(models.Model):
-    title_id = models.ForeignKey(
+    title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        verbose_name="title"
+        verbose_name="Произведение"
     )
     text = models.TextField()
     author = models.ForeignKey(
@@ -112,13 +132,14 @@ class Review(models.Model):
     class Meta:
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
+        unique_together = ('author', 'title')
 
     def str(self):
         return self.text
 
 
 class Comment(models.Model):
-    review_id = models.ForeignKey(
+    review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
     )

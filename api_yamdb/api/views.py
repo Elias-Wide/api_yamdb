@@ -1,14 +1,20 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status, views, viewsets, generics, permissions
+from rest_framework.filters import SearchFilter
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from api.permissions import AuthorOrReadOnly, Moderator
+from api.permissions import (
+    IsAdmin,
+    IsAdminOrReadOnly,
+    IsAdminOrModeratorOrAuthor,
+    IsAuthorOrReadOnly,
+    IsAuthenticated
+)
 from api.serializers import (
     CategorySerializer,
     CommentSerializer,
@@ -33,9 +39,9 @@ from reviews.models import (
 
 class TitleViewSet(ModelViewSet):
     queryset = Title.objects.all()
-    serializer_class = TitleCreateSerializer
+    permission_classes = (IsAdminOrReadOnly,)
 
-    def resolve_serializer_class(self):
+    def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleReadSerializer
         return TitleCreateSerializer
@@ -45,12 +51,23 @@ class GenreViewSet(CreateModelMixin, ListModelMixin,
                    DestroyModelMixin, GenericViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('name', )
 
 
 class CategoryViewSet(CreateModelMixin, ListModelMixin,
                       DestroyModelMixin, GenericViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('name', )
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SignUpView(generics.CreateAPIView):
@@ -74,7 +91,9 @@ class TokenView(views.APIView):
                 user.confirmation_code = None
                 user.save()
                 return Response(
-                    {'refresh': str(refresh), 'access': str(refresh.access_token)},
+                    {
+                        'token': str(refresh.access_token)
+                    },
                     status=status.HTTP_200_OK)
             return Response(
                 {'error': 'Invalid username or verification code'},
@@ -83,7 +102,7 @@ class TokenView(views.APIView):
 
 
 class UserProfileView(views.APIView):
-    permission_classes = (permissions.IsAuthenticated,)
+    permission_classes = (IsAuthenticated,)
 
     def get_object(self):
         return self.request.user
@@ -108,25 +127,38 @@ class UserProfileView(views.APIView):
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UsersSerializer
-    permission_classes = (permissions.IsAdminUser,)
+    permission_classes = (IsAdmin,)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = (AuthorOrReadOnly,)
     pagination_class = PageNumberPagination
 
     def perform_create(self, serializer):
+        self.add_title_rating(serializer.validated_data['score'])
         serializer.save(
             author=self.request.user,
-            title_id=self.get_title(self.kwargs['title_id'])
+            title=self.get_title(self.kwargs['title_id'])
         )
 
     def get_permissions(self):
-        if self.request.user.role == 'moderator':
-            return (Moderator(),)
-        return super().get_permissions()
+        if self.action == 'create':
+            return (permissions.IsAuthenticated(),)
+        elif self.action in ['partial_update', 'destroy']:
+            return (IsAdminOrModeratorOrAuthor(),)
+        return (permissions.AllowAny(),)
+
+    def add_title_rating(self, score):
+        title = Title.objects.get(id=self.kwargs['title_id'])
+        if title.rating is None:
+            title.rating = score
+            title.save()
+        all_scores = [
+            review.score for review in Review.objects.filter(title=title)
+        ]
+        title.rating = (sum(all_scores) + score) / (len(all_scores) + 1)
+        title.save()
 
     @staticmethod
     def get_title(title_id):
@@ -135,7 +167,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = (AuthorOrReadOnly,)
     pagination_class = PageNumberPagination
 
     def get_queryset(self):
@@ -144,12 +175,16 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         review = self.get_review(self.kwargs['review_id'])
-        serializer.save(author=self.request.user, review_id=review)
+        serializer.save(author=self.request.user, review=review)
 
     def get_permissions(self):
-        if self.request.user.role == 'moderator':
-            return (Moderator(),)
-        return super().get_permissions()
+        if self.request.method == 'POST':
+            return (IsAuthenticated(),)
+        if self.action == 'create':
+            return (IsAuthorOrReadOnly(),)
+        elif self.action in ['partial_update', 'destroy']:
+            return (IsAdminOrModeratorOrAuthor(),)
+        return (permissions.AllowAny(),)
 
     @staticmethod
     def get_review(review_id):

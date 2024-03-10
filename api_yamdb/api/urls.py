@@ -19,9 +19,9 @@ app_name = 'api'
 
 router = SimpleRouter()
 
-router.register('categories', CategoryViewSet, basename='сategories')
-router.register('titles', TitleViewSet, basename='titles')
-router.register('genres', GenreViewSet, basename='genres')
+router.register(r'categories', CategoryViewSet, basename='сategories')
+router.register(r'titles', TitleViewSet, basename='titles')
+router.register(r'genres', GenreViewSet, basename='genres')
 router.register(r'users', UsersViewSet, basename='users')
 router.register(r'titles/(?P<title_id>\d+)/reviews', ReviewViewSet, basename='reviews')
 router.register(
