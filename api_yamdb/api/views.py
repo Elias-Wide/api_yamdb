@@ -1,6 +1,8 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status, views, viewsets, generics, permissions
 from rest_framework.filters import SearchFilter
+from django_filters import rest_framework as filters
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.mixins import (CreateModelMixin, DestroyModelMixin,
                                    ListModelMixin)
 from rest_framework.pagination import PageNumberPagination
@@ -37,9 +39,26 @@ from reviews.models import (
 )
 
 
+class TitleFilter(filters.FilterSet):
+    category = filters.CharFilter(
+        field_name='category__slug',
+        lookup_expr='icontains'
+    )
+    genre = filters.CharFilter(
+        field_name='genre__slug',
+        lookup_expr='icontains'
+    )
+
+    class Meta:
+        model = Title
+        fields = '__all__'
+
+
 class TitleViewSet(ModelViewSet):
     queryset = Title.objects.all()
     permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -63,11 +82,6 @@ class CategoryViewSet(CreateModelMixin, ListModelMixin,
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name', )
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SignUpView(generics.CreateAPIView):
@@ -128,6 +142,8 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UsersSerializer
     permission_classes = (IsAdmin,)
+    filter_backends = (SearchFilter,)
+    search_fields = ('username',)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
