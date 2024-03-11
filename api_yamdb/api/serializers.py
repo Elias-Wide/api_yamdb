@@ -1,11 +1,14 @@
 import string
 import secrets
+import re
+
 
 from django.core.mail import send_mail
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError, MethodNotAllowed
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
 from api.mixins import PutNotAllowedMixin
@@ -31,6 +34,23 @@ def send_confirmation_email(email, confirmation_code):
               recipient_list=[email])
 
 
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        del self.fields['password']
+        self.fields['username'] = serializers.CharField()
+        self.fields['confirmation_code'] = serializers.CharField(max_length=6, required=True)
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        confirmation_code = attrs.get('confirmation_code')
+        user = CustomUser.objects.filter(username=username).first()
+        if confirmation_code != user.confirmation_code:
+            raise ValidationError('Incorrect confirmation code')
+        return attrs
+
+
 class SignUpSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=254, required=True)
     username = serializers.CharField(max_length=150, required=True)
@@ -42,6 +62,8 @@ class SignUpSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         email = attrs.get('email')
         username = attrs.get('username')
+        if not re.match(r'^[\w.@+-]+$', username):
+            raise serializers.ValidationError("Username must match the pattern: ^[\w.@+-]+\Z")
         existing_user = CustomUser.objects.filter(email=email, username=username).first()
         if existing_user:
             return attrs
@@ -78,6 +100,9 @@ class GetTokenSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(max_length=254, required=True)
+    username = serializers.CharField(max_length=150, required=True)
+    role = serializers.CharField(read_only=True)
 
     class Meta:
         model = CustomUser
@@ -86,11 +111,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if self.context['request'].method == 'PATCH':
-            if not attrs.get('username') or not attrs.get('email'):
-                raise ValidationError(
-                    'username and email are required fields for PATCH requests.'
-                )
-        return attrs
+            username = attrs.get('username')
+            if username is not None and not re.match(r'^[\w.@+-]+$', username):
+                raise serializers.ValidationError("Username must match the pattern: ^[\w.@+-]+\Z")
+            if 'username' not in attrs or 'email' not in attrs:
+                return attrs
+        return super().validate(attrs)
 
 
 class UsersSerializer(serializers.ModelSerializer):
