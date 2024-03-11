@@ -31,7 +31,6 @@ from api.serializers import (
 )
 from reviews.models import (
     Category,
-    Comment,
     CustomUser,
     Genre,
     Review,
@@ -97,7 +96,9 @@ class TokenView(views.APIView):
         serializer = GetTokenSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data.get('username')
-            confirmation_code = serializer.validated_data.get('confirmation_code')
+            confirmation_code = serializer.validated_data.get(
+                'confirmation_code'
+            )
             user = CustomUser.objects.filter(
                 username=username, confirmation_code=confirmation_code).first()
             if user:
