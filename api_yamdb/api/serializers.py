@@ -1,24 +1,16 @@
-import string
-import secrets
 import re
+import secrets
+import string
 
-from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError, MethodNotAllowed
+from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
-
-from reviews.models import (
-    Category,
-    Comment,
-    CustomUser,
-    Genre,
-    Review,
-    Title
-)
 
 
 def generate_confirmation_code(length=6):
@@ -64,13 +56,17 @@ class SignUpSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         existing_user = CustomUser.objects.filter(email=value).first()
-        if existing_user and existing_user.username != self.initial_data.get('username'):
+        if existing_user and existing_user.username != self.initial_data.get(
+            'username'
+        ):
             raise serializers.ValidationError("Email must be unique.")
         return value
 
     def validate_username(self, value):
         existing_user = CustomUser.objects.filter(username=value).first()
-        if existing_user and existing_user.email != self.initial_data.get('email'):
+        if existing_user and existing_user.email != self.initial_data.get(
+            'email'
+        ):
             raise serializers.ValidationError("Username must be unique.")
         if not re.match(r'^[\w.@+-]+$', value) or value == 'me':
             raise serializers.ValidationError('Username is invalid.')
@@ -184,11 +180,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
-    def update(self, instance, validated_data):
-        if self.context['request'].method == 'PUT':
-            raise MethodNotAllowed(method='PUT')
-        return super().update(instance, validated_data)
-
     def validate_score(self, value):
         if not (MIN_SCORE_VALUE <= value <= MAX_SCORE_VALUE):
             raise serializers.ValidationError(
@@ -197,7 +188,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-
         title = get_object_or_404(
             Title, id=self.context['view'].kwargs['title_id']
         )

@@ -1,11 +1,10 @@
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q
-from django.contrib.auth.models import AbstractUser
-from django.core.validators import MaxValueValidator, MinValueValidator
-from django.contrib.auth.models import BaseUserManager
 
+from reviews.validators import validate_year
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
-from .validators import validate_year
 
 
 class CustomUserManager(BaseUserManager):
