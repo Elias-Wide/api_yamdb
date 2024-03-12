@@ -15,7 +15,6 @@ from api.mixins import (
 from api.permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
-    IsAuthenticated,
 )
 from reviews.models import Category, CustomUser, Genre, Review, Title
 
@@ -90,7 +89,6 @@ class TokenView(TokenObtainPairView):
 
 
 class UserProfileView(views.APIView):
-    permission_classes = (IsAuthenticated,)
 
     def get_user(self):
         return self.request.user
