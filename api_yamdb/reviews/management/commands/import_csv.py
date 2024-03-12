@@ -1,15 +1,9 @@
-from django.core.management.base import BaseCommand
 import csv
 import os
-from reviews.models import (
-    Category,
-    Genre,
-    Title,
-    GenreTitle,
-    CustomUser,
-    Review,
-    Comment
-)
+
+from django.core.management.base import BaseCommand
+from reviews.models import (Category, Comment, CustomUser, Genre, GenreTitle,
+                            Review, Title)
 
 STATIC_URL = "static/data/"
 TABLES_DICT = {

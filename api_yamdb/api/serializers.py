@@ -1,25 +1,16 @@
-import string
-import secrets
 import re
+import secrets
+import string
 
-
-from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError, MethodNotAllowed
+from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
-from api.mixins import PutNotAllowedMixin
-from reviews.models import (
-    Category,
-    Comment,
-    CustomUser,
-    Genre,
-    Review,
-    Title
-)
 
 
 def generate_confirmation_code(length=6):
@@ -40,12 +31,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         super().__init__(*args, **kwargs)
         del self.fields['password']
         self.fields['username'] = serializers.CharField()
-        self.fields['confirmation_code'] = serializers.CharField(max_length=6, required=True)
+        self.fields['confirmation_code'] = serializers.CharField(max_length=6,
+                                                                 required=True)
 
     def validate(self, attrs):
         username = attrs.get('username')
         confirmation_code = attrs.get('confirmation_code')
-        user = CustomUser.objects.filter(username=username).first()
+        user = get_object_or_404(CustomUser, username=username)
         if confirmation_code != user.confirmation_code:
             raise ValidationError('Incorrect confirmation code')
         return attrs
@@ -59,44 +51,48 @@ class SignUpSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ('email', 'username')
 
-    def validate(self, attrs):
-        email = attrs.get('email')
-        username = attrs.get('username')
-        if not re.match(r'^[\w.@+-]+$', username):
-            raise serializers.ValidationError("Username must match the pattern: ^[\w.@+-]+\Z")
-        existing_user = CustomUser.objects.filter(email=email, username=username).first()
-        if existing_user:
-            return attrs
-        if CustomUser.objects.filter(email=email).exists():
+    def get_existing_user():
+        pass
+
+    def validate_email(self, value):
+        existing_user = CustomUser.objects.filter(email=value).first()
+        if existing_user and existing_user.username != self.initial_data.get(
+            'username'
+        ):
             raise serializers.ValidationError("Email must be unique.")
-        if CustomUser.objects.filter(username=username).exists():
+        return value
+
+    def validate_username(self, value):
+        existing_user = CustomUser.objects.filter(username=value).first()
+        if existing_user and existing_user.email != self.initial_data.get(
+            'email'
+        ):
             raise serializers.ValidationError("Username must be unique.")
-        return attrs
+        if not re.match(r'^[\w.@+-]+$', value) or value == 'me':
+            raise serializers.ValidationError('Username is invalid.')
+        return value
 
     def create(self, validated_data):
         email = validated_data.get('email')
         username = validated_data.get('username')
-        existing_user = CustomUser.objects.filter(email=email, username=username).first()
         confirmation_code = generate_confirmation_code()
+        existing_user = CustomUser.objects.filter(
+            email=email,
+            username=username
+        ).first()
         if existing_user:
             existing_user.confirmation_code = confirmation_code
             existing_user.save()
             send_confirmation_email(email, confirmation_code)
             return existing_user
-        user = CustomUser.objects.create_user(email=email, username=username)
-        user.confirmation_code = confirmation_code
-        user.save()
+
+        user = CustomUser.objects.create_user(
+            email=email,
+            username=username,
+            confirmation_code=confirmation_code
+        )
         send_confirmation_email(email, confirmation_code)
         return user
-
-
-class GetTokenSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(max_length=150, required=True)
-    confirmation_code = serializers.CharField(max_length=6, required=True)
-
-    class Meta:
-        model = CustomUser
-        fields = ('username', 'confirmation_code')
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -113,7 +109,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if self.context['request'].method == 'PATCH':
             username = attrs.get('username')
             if username is not None and not re.match(r'^[\w.@+-]+$', username):
-                raise serializers.ValidationError("Username must match the pattern: ^[\w.@+-]+\Z")
+                raise serializers.ValidationError(
+                    r'Username must match the pattern: ^[\w.@+-]+\Z'
+                )
             if 'username' not in attrs or 'email' not in attrs:
                 return attrs
         return super().validate(attrs)
@@ -141,7 +139,7 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TitleCreateSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
+class TitleCreateSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug',
@@ -182,11 +180,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
-    def update(self, instance, validated_data):
-        if self.context['request'].method == 'PUT':
-            raise MethodNotAllowed(method='PUT')
-        return super().update(instance, validated_data)
-
     def validate_score(self, value):
         if not (MIN_SCORE_VALUE <= value <= MAX_SCORE_VALUE):
             raise serializers.ValidationError(
@@ -195,7 +188,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-
         title = get_object_or_404(
             Title, id=self.context['view'].kwargs['title_id']
         )
@@ -210,7 +202,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         return data
 
 
-class CommentSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         queryset=CustomUser.objects.all(),
         slug_field='username',

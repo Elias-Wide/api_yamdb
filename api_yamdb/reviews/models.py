@@ -1,10 +1,37 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.contrib.auth.models import BaseUserManager
+from django.db import models
+from django.db.models import CheckConstraint, Q
 
+from reviews.validators import validate_year
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
-from .validators import validate_year
+
+
+class CustomUserManager(BaseUserManager):
+
+    def create_user(self, username, email, confirmation_code=None, role='user',
+                    bio=None, password=None):
+        user = self.model(
+            username=username,
+            email=self.normalize_email(email),
+            role=role,
+            bio=bio,
+            confirmation_code=confirmation_code
+        )
+        user.save()
+        return user
+
+    def create_superuser(self, email, username, password, **extra_fields):
+
+        if password is None:
+            raise TypeError('Password is required.')
+
+        user = self.create_user(username, email, password)
+        user.is_superuser = True
+        user.is_staff = True
+        user.role = 'admin'
+        user.save()
+        return user
 
 
 class CustomUser(AbstractUser):
@@ -23,6 +50,8 @@ class CustomUser(AbstractUser):
     email = models.EmailField(
         max_length=254,
         unique=True,
+        null=False,
+        blank=False,
         verbose_name='Адрес электронной почты'
     )
     role = models.CharField(
@@ -32,22 +61,25 @@ class CustomUser(AbstractUser):
         verbose_name='Роль'
     )
     bio = models.TextField(
+        null=True,
         blank=True,
         verbose_name='Биография'
     )
 
+    objects = CustomUserManager()
+
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        constraints = [
+            CheckConstraint(
+                check=~Q(username='me'), name='username_me_banned_word'
+            )
+        ]
+        ordering = ('email',)
 
-
-class CustomUserManager(BaseUserManager):
-
-    def create_superuser(self, email, username, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'admin')
-        return self.create_user(email, username, password, **extra_fields)
+    def __str__(self) -> str:
+        return self.username
 
 
 class Category(models.Model):
@@ -63,6 +95,7 @@ class Category(models.Model):
     class Meta:
         verbose_name = 'Категория'
         verbose_name_plural = 'Категории'
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -78,6 +111,7 @@ class Genre(models.Model):
     class Meta:
         verbose_name = 'Жанр'
         verbose_name_plural = 'Жанры'
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -89,7 +123,7 @@ class Title(models.Model):
         verbose_name='Название'
     )
     year = models.IntegerField(
-        validators=[validate_year],
+        validators=(validate_year,),
         verbose_name='Год релиза'
     )
     category = models.ForeignKey(
@@ -120,6 +154,7 @@ class Title(models.Model):
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -153,10 +188,10 @@ class Review(models.Model):
         verbose_name='Автор'
     )
     score = models.IntegerField(
-        validators=[
+        validators=(
             MaxValueValidator(MAX_SCORE_VALUE),
             MinValueValidator(MIN_SCORE_VALUE)
-        ],
+        ),
         verbose_name='Оценка'
     )
     pub_date = models.DateTimeField(
@@ -168,6 +203,7 @@ class Review(models.Model):
         verbose_name = "Отзыв"
         verbose_name_plural = "Отзывы"
         unique_together = ('author', 'title')
+        ordering = ('pub_date',)
 
     def str(self):
         return self.text
@@ -194,6 +230,7 @@ class Comment(models.Model):
         verbose_name = "Комментарий"
         verbose_name_plural = "Комментарии"
         default_related_name = 'comments'
+        ordering = ('pub_date',)
 
     def str(self):
         return self.text
