@@ -1,14 +1,16 @@
-from django.shortcuts import get_object_or_404
 from django_filters import rest_framework as filters
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, views, viewsets, permissions, mixins
+from django.shortcuts import get_object_or_404
+from rest_framework import mixins, permissions, status, views, viewsets
 from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.exceptions import MethodNotAllowed
 
 from api import serializers
+from api.mixins import PutNotAllowedMixin
 from api.permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
@@ -40,22 +42,7 @@ class TitleFilter(filters.FilterSet):
         fields = '__all__'
 
 
-class TitleFilter(filters.FilterSet):
-    category = filters.CharFilter(
-        field_name='category__slug',
-        lookup_expr='icontains'
-    )
-    genre = filters.CharFilter(
-        field_name='genre__slug',
-        lookup_expr='icontains'
-    )
-
-    class Meta:
-        model = Title
-        fields = '__all__'
-
-
-class TitleViewSet(viewsets.ModelViewSet):
+class TitleViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
     queryset = Title.objects.all()
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
@@ -67,7 +54,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         return serializers.TitleCreateSerializer
 
 
-class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
+class GenreViewSet(PutNotAllowedMixin, mixins.CreateModelMixin, mixins.ListModelMixin,
                    mixins.DestroyModelMixin, viewsets.GenericViewSet):
     queryset = Genre.objects.all()
     serializer_class = serializers.GenreSerializer
@@ -77,7 +64,7 @@ class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     lookup_field = 'slug'
 
 
-class CategoryViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
+class CategoryViewSet(PutNotAllowedMixin, mixins.CreateModelMixin, mixins.ListModelMixin,
                       mixins.DestroyModelMixin, viewsets.GenericViewSet):
     queryset = Category.objects.all()
     serializer_class = serializers.CategorySerializer
@@ -142,16 +129,17 @@ class UserProfileView(views.APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class UsersViewSet(viewsets.ModelViewSet):
+class UsersViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = serializers.UsersSerializer
     permission_classes = (IsAdmin, )
     filter_backends = (SearchFilter,)
     search_fields = ('username', )
     lookup_field = 'username'
+    http_method_names = ['get', 'head', 'post', 'delete', 'patch', 'options']
 
 
-class ReviewViewSet(viewsets.ModelViewSet):
+class ReviewViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = serializers.ReviewSerializer
     pagination_class = PageNumberPagination
@@ -186,7 +174,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return get_object_or_404(Title, id=title_id)
 
 
-class CommentViewSet(viewsets.ModelViewSet):
+class CommentViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
     serializer_class = serializers.CommentSerializer
     pagination_class = PageNumberPagination
 

@@ -10,7 +10,7 @@ from rest_framework.exceptions import ValidationError, MethodNotAllowed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
-from api.mixins import PutNotAllowedMixin
+
 from reviews.models import (
     Category,
     Comment,
@@ -121,7 +121,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
 
-class UsersSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
+class UsersSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
@@ -129,7 +129,7 @@ class UsersSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
                   'last_name', 'bio', 'role')
 
 
-class CategorySerializer(PutNotAllowedMixin, serializers.ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
@@ -143,7 +143,7 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
-class TitleCreateSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
+class TitleCreateSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         queryset=Category.objects.all(),
         slug_field='slug',
@@ -212,7 +212,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         return data
 
 
-class CommentSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         queryset=CustomUser.objects.all(),
         slug_field='username',
