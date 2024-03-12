@@ -102,16 +102,18 @@ class TokenView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
 
     def post(self, request, *args, **kwargs):
-        serializer = serializers.CustomTokenObtainPairSerializer(data=request.data)
+        serializer = serializers.CustomTokenObtainPairSerializer(
+            data=request.data
+        )
         if serializer.is_valid():
-            username = serializer.validated_data.filter('username').first()
+            username = serializer.validated_data.get('username')
             user = CustomUser.objects.get(username=username)
             refresh = AccessToken.for_user(user)
             user.confirmation_code = None
             user.save()
             return Response(
                 {
-                    'token': str(refresh.access_token)
+                    'token': str(refresh)
                 },
                 status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -143,7 +145,7 @@ class UserProfileView(views.APIView):
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = serializers.UsersSerializer
-    permission_classes = (IsAdmin,)
+    permission_classes = (IsAdmin, )
     filter_backends = (SearchFilter,)
     search_fields = ('username', )
     lookup_field = 'username'

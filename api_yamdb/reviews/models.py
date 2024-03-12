@@ -10,8 +10,8 @@ from .validators import validate_year
 
 class CustomUserManager(BaseUserManager):
 
-    def create_user(self, username, email, role='user',
-                    bio=None, confirmation_code=None, password=None):
+    def create_user(self, username, email, confirmation_code=None, role='user',
+                    bio=None, password=None):
         user = self.model(
             username=username,
             email=self.normalize_email(email),

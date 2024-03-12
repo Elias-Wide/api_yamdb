@@ -37,6 +37,10 @@ router.register(
 urlpatterns = [
     path(API_VERSION + 'auth/signup/', SignUpView.as_view(), name='signup'),
     path(API_VERSION + 'auth/token/', TokenView.as_view(), name='token'),
-    path(API_VERSION + 'users/me/', UserProfileView.as_view(), name='user_profile'),
-    path(API_VERSION, include(router.urls))
+    path(
+        API_VERSION + 'users/me/',
+        UserProfileView.as_view(),
+        name='user_profile'
+    ),
+    path(API_VERSION, include(router.urls)),
 ]

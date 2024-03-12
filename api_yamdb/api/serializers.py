@@ -79,22 +79,22 @@ class SignUpSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         email = validated_data.get('email')
         username = validated_data.get('username')
+        confirmation_code = generate_confirmation_code()
         existing_user = CustomUser.objects.filter(
             email=email,
             username=username
         ).first()
-        confirmation_code = generate_confirmation_code()
         if existing_user:
             existing_user.confirmation_code = confirmation_code
             existing_user.save()
             send_confirmation_email(email, confirmation_code)
             return existing_user
+
         user = CustomUser.objects.create_user(
             email=email,
             username=username,
             confirmation_code=confirmation_code
         )
-        user.save()
         send_confirmation_email(email, confirmation_code)
         return user
 
