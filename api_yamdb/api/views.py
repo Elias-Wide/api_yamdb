@@ -90,6 +90,7 @@ class GenreViewSet(CreateModelMixin, ListModelMixin,
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name', )
+    lookup_field = 'slug'
 
 
 class CategoryViewSet(CreateModelMixin, ListModelMixin,
@@ -99,6 +100,7 @@ class CategoryViewSet(CreateModelMixin, ListModelMixin,
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (SearchFilter,)
     search_fields = ('name', )
+    lookup_field = 'slug'
 
 
 class SignUpView(TokenObtainPairView):
@@ -113,7 +115,7 @@ class TokenView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         serializer = CustomTokenObtainPairSerializer(data=request.data)
         if serializer.is_valid():
-            username = serializer.validated_data.get('username')
+            username = serializer.validated_data.filter('username').first()
             user = CustomUser.objects.get(username=username)
             refresh = AccessToken.for_user(user)
             user.confirmation_code = None
@@ -128,7 +130,6 @@ class TokenView(TokenObtainPairView):
 
 # class TokenView(views.APIView):
 #     permission_classes = (permissions.AllowAny,)
-
 #     def post(self, request, *args, **kwargs):
 #         serializer = GetTokenSerializer(data=request.data)
 #         if serializer.is_valid():

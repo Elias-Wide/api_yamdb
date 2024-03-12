@@ -12,6 +12,7 @@ class IsAdminOrModeratorOrAuthor(permissions.BasePermission):
             request.user.role == 'admin'
             or request.user.role == 'moderator'
             or obj.author == request.user
+            or request.user.is_superuser
         )
 
 
@@ -53,13 +54,13 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         if request.user.is_authenticated:
-            return request.user.role == 'admin'
+            return request.user.role == 'admin' or request.user.is_superuser
         return False
 
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role == 'admin'
+        return request.user.role == 'admin' or request.user.is_superuser
 
 
 class IsAdmin(permissions.BasePermission):

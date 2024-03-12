@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import CheckConstraint, Q
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.contrib.auth.models import BaseUserManager
@@ -23,6 +24,8 @@ class CustomUser(AbstractUser):
     email = models.EmailField(
         max_length=254,
         unique=True,
+        null=False,
+        blank=False,
         verbose_name='Адрес электронной почты'
     )
     role = models.CharField(
@@ -32,6 +35,7 @@ class CustomUser(AbstractUser):
         verbose_name='Роль'
     )
     bio = models.TextField(
+        null=True,
         blank=True,
         verbose_name='Биография'
     )
@@ -39,6 +43,15 @@ class CustomUser(AbstractUser):
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        constraints = [
+            CheckConstraint(
+                check=~Q(username='me'), name='username_me_banned_word'
+            )
+        ]
+        ordering = ('email',)
+
+    def __str__(self) -> str:
+        return self.username
 
 
 class CustomUserManager(BaseUserManager):

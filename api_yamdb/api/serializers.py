@@ -2,7 +2,6 @@ import string
 import secrets
 import re
 
-
 from django.core.mail import send_mail
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -62,8 +61,8 @@ class SignUpSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         email = attrs.get('email')
         username = attrs.get('username')
-        if not re.match(r'^[\w.@+-]+$', username):
-            raise serializers.ValidationError("Username must match the pattern: ^[\w.@+-]+\Z")
+        if not re.match(r'^[\w.@+-]+$', username) or username == 'me':
+            raise serializers.ValidationError('Username is invalid.')
         existing_user = CustomUser.objects.filter(email=email, username=username).first()
         if existing_user:
             return attrs
