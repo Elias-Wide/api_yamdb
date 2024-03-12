@@ -123,7 +123,7 @@ class Title(models.Model):
         verbose_name='Название'
     )
     year = models.IntegerField(
-        validators=[validate_year],
+        validators=(validate_year,),
         verbose_name='Год релиза'
     )
     category = models.ForeignKey(
@@ -188,10 +188,10 @@ class Review(models.Model):
         verbose_name='Автор'
     )
     score = models.IntegerField(
-        validators=[
+        validators=(
             MaxValueValidator(MAX_SCORE_VALUE),
             MinValueValidator(MIN_SCORE_VALUE)
-        ],
+        ),
         verbose_name='Оценка'
     )
     pub_date = models.DateTimeField(
