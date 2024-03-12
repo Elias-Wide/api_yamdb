@@ -8,6 +8,33 @@ from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
 from .validators import validate_year
 
 
+class CustomUserManager(BaseUserManager):
+
+    def create_user(self, username, email, role='user',
+                    bio=None, confirmation_code=None, password=None):
+        user = self.model(
+            username=username,
+            email=self.normalize_email(email),
+            role=role,
+            bio=bio,
+            confirmation_code=confirmation_code
+        )
+        user.save()
+        return user
+
+    def create_superuser(self, email, username, password, **extra_fields):
+
+        if password is None:
+            raise TypeError('Password is required.')
+
+        user = self.create_user(username, email, password)
+        user.is_superuser = True
+        user.is_staff = True
+        user.role = 'admin'
+        user.save()
+        return user
+
+
 class CustomUser(AbstractUser):
     USER_ROLE_CHOICES = (
         ('user', 'User'),
@@ -40,6 +67,8 @@ class CustomUser(AbstractUser):
         verbose_name='Биография'
     )
 
+    objects = CustomUserManager()
+
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
@@ -52,15 +81,6 @@ class CustomUser(AbstractUser):
 
     def __str__(self) -> str:
         return self.username
-
-
-class CustomUserManager(BaseUserManager):
-
-    def create_superuser(self, email, username, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'admin')
-        return self.create_user(email, username, password, **extra_fields)
 
 
 class Category(models.Model):

@@ -39,12 +39,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         super().__init__(*args, **kwargs)
         del self.fields['password']
         self.fields['username'] = serializers.CharField()
-        self.fields['confirmation_code'] = serializers.CharField(max_length=6, required=True)
+        self.fields['confirmation_code'] = serializers.CharField(max_length=6,
+                                                                 required=True)
 
     def validate(self, attrs):
         username = attrs.get('username')
         confirmation_code = attrs.get('confirmation_code')
-        user = CustomUser.objects.filter(username=username).first()
+        user = get_object_or_404(CustomUser, username=username)
         if confirmation_code != user.confirmation_code:
             raise ValidationError('Incorrect confirmation code')
         return attrs
@@ -58,44 +59,44 @@ class SignUpSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ('email', 'username')
 
-    def validate(self, attrs):
-        email = attrs.get('email')
-        username = attrs.get('username')
-        if not re.match(r'^[\w.@+-]+$', username) or username == 'me':
-            raise serializers.ValidationError('Username is invalid.')
-        existing_user = CustomUser.objects.filter(email=email, username=username).first()
-        if existing_user:
-            return attrs
-        if CustomUser.objects.filter(email=email).exists():
+    def get_existing_user():
+        pass
+
+    def validate_email(self, value):
+        existing_user = CustomUser.objects.filter(email=value).first()
+        if existing_user and existing_user.username != self.initial_data.get('username'):
             raise serializers.ValidationError("Email must be unique.")
-        if CustomUser.objects.filter(username=username).exists():
+        return value
+
+    def validate_username(self, value):
+        existing_user = CustomUser.objects.filter(username=value).first()
+        if existing_user and existing_user.email != self.initial_data.get('email'):
             raise serializers.ValidationError("Username must be unique.")
-        return attrs
+        if not re.match(r'^[\w.@+-]+$', value) or value == 'me':
+            raise serializers.ValidationError('Username is invalid.')
+        return value
 
     def create(self, validated_data):
         email = validated_data.get('email')
         username = validated_data.get('username')
-        existing_user = CustomUser.objects.filter(email=email, username=username).first()
+        existing_user = CustomUser.objects.filter(
+            email=email,
+            username=username
+        ).first()
         confirmation_code = generate_confirmation_code()
         if existing_user:
             existing_user.confirmation_code = confirmation_code
             existing_user.save()
             send_confirmation_email(email, confirmation_code)
             return existing_user
-        user = CustomUser.objects.create_user(email=email, username=username)
-        user.confirmation_code = confirmation_code
+        user = CustomUser.objects.create_user(
+            email=email,
+            username=username,
+            confirmation_code=confirmation_code
+        )
         user.save()
         send_confirmation_email(email, confirmation_code)
         return user
-
-
-class GetTokenSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(max_length=150, required=True)
-    confirmation_code = serializers.CharField(max_length=6, required=True)
-
-    class Meta:
-        model = CustomUser
-        fields = ('username', 'confirmation_code')
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -112,13 +113,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if self.context['request'].method == 'PATCH':
             username = attrs.get('username')
             if username is not None and not re.match(r'^[\w.@+-]+$', username):
-                raise serializers.ValidationError("Username must match the pattern: ^[\w.@+-]+\Z")
+                raise serializers.ValidationError(
+                    r'Username must match the pattern: ^[\w.@+-]+\Z'
+                )
             if 'username' not in attrs or 'email' not in attrs:
                 return attrs
         return super().validate(attrs)
 
 
-class UsersSerializer(serializers.ModelSerializer):
+class UsersSerializer(PutNotAllowedMixin, serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
@@ -126,7 +129,7 @@ class UsersSerializer(serializers.ModelSerializer):
                   'last_name', 'bio', 'role')
 
 
-class CategorySerializer(serializers.ModelSerializer):
+class CategorySerializer(PutNotAllowedMixin, serializers.ModelSerializer):
 
     class Meta:
         model = Category
