@@ -124,31 +124,27 @@ class ReviewViewSet(ReviewCommentMixin):
     serializer_class = serializers.ReviewSerializer
 
     def perform_create(self, serializer):
-        self.add_title_rating(serializer.validated_data['score'])
         serializer.save(
             author=self.request.user,
             title=self.get_db_object(Title, self.kwargs['title_id'])
         )
-
-    def add_title_rating(self, score):
-        title = Title.objects.get(id=self.kwargs['title_id'])
-        if title.rating is None:
-            title.rating = score
-            title.save()
-        all_scores = [
-            review.score for review in Review.objects.filter(title=title)
-        ]
-        title.rating = (sum(all_scores) + score) / (len(all_scores) + 1)
-        title.save()
 
 
 class CommentViewSet(ReviewCommentMixin):
     serializer_class = serializers.CommentSerializer
 
     def get_queryset(self):
-        review = self.get_db_object(Review, self.kwargs['review_id'])
+        review = self.get_db_object(
+            Review,
+            self.kwargs['review_id'],
+            title=self.kwargs['title_id']
+        )
         return review.comments.all()
 
     def perform_create(self, serializer):
-        review = self.get_db_object(Review, self.kwargs['review_id'])
+        review = self.get_db_object(
+            Review,
+            self.kwargs['review_id'],
+            title=self.kwargs['title_id']
+        )
         serializer.save(author=self.request.user, review=review)
