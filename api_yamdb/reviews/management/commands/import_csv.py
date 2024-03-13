@@ -24,17 +24,21 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         for model_class, file_name in TABLES_DICT.items():
             csv_file_path = os.path.join(STATIC_URL, file_name)
+            row_list = []
             with open(csv_file_path, 'r') as file:
                 reader = csv.DictReader(file)
                 for row in reader:
-                    model_instance = model_class()
-                    for field_name, value in row.items():
-                        try:
-                            if hasattr(model_class, field_name):
-                                setattr(model_instance, field_name, value)
-                        except Exception as error:
-                            print(f'Error in row {row.get("id")}.\n'
-                                  f'Error text - {error}')
-                    model_instance.save()
+                    try:
+                        if file_name == 'titles.csv':
+                            row['category'] = Category(int(row['category']))
+                        elif file_name == 'review.csv':
+                            row['author'] = CustomUser(int(row['author']))
+                        elif file_name == 'comments.csv':
+                            row['author'] = CustomUser(int(row['author']))
+                        row_list.append(model_class(**row))
+                    except Exception as error:
+                        self.stdout.write(f'Error in row {row.get("id")}.'
+                                          f' Error text - {error}')
+                model_class.objects.bulk_create(row_list)
 
         self.stdout.write(self.style.SUCCESS('Data loaded successfully'))
