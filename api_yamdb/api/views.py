@@ -61,16 +61,16 @@ class TokenView(TokenObtainPairView):
         serializer = serializers.CustomTokenObtainPairSerializer(
             data=request.data
         )
-        if serializer.is_valid(raise_exception=True):
-            username = serializer.validated_data.get('username')
-            user = get_object_or_404(User, username=username)
-            refresh = AccessToken.for_user(user)
-            user.confirmation_code = None
-            user.save()
-            return Response(
-                {'token': str(refresh)},
-                status=status.HTTP_200_OK
-            )
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data.get('username')
+        user = get_object_or_404(User, username=username)
+        access = AccessToken.for_user(user)
+        user.confirmation_code = None
+        user.save()
+        return Response(
+            {'token': str(access)},
+            status=status.HTTP_200_OK
+        )
 
 
 class UserProfileView(views.APIView):
