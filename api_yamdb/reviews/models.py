@@ -196,17 +196,17 @@ class Review(models.Model):
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='Publication'
+        verbose_name='Publication date'
     )
 
     class Meta:
         verbose_name = "Review"
         verbose_name_plural = "Reviews"
         constraints = [
-        models.UniqueConstraint(
-            fields=('author', 'title'), name='unique review'
-        )
-    ]
+            models.UniqueConstraint(
+                fields=('author', 'title'), name='unique review'
+            )
+        ]
         ordering = ('pub_date',)
 
     def str(self):
