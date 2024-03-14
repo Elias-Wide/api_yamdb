@@ -1,5 +1,5 @@
 from django.db.models import Avg
-from django_filters import rest_framework as filters
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status, views, viewsets
 from rest_framework.filters import SearchFilter
@@ -18,7 +18,8 @@ from api.permissions import (
     IsAdminOrReadOnly,
 )
 from api.filters import TitleFilter
-from reviews.models import Category, CustomUser, Genre, Review, Title
+from reviews.models import Category, Genre, Review, Title
+from users.models import User
 
 
 class TitleViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
@@ -48,10 +49,9 @@ class SignUpView(views.APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = serializers.SignUpSerializer(data=request.data)
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TokenView(TokenObtainPairView):
@@ -61,18 +61,16 @@ class TokenView(TokenObtainPairView):
         serializer = serializers.CustomTokenObtainPairSerializer(
             data=request.data
         )
-        if serializer.is_valid():
-            username = serializer.validated_data.get('username')
-            user = CustomUser.objects.get(username=username)
-            refresh = AccessToken.for_user(user)
-            user.confirmation_code = None
-            user.save()
-            return Response(
-                {
-                    'token': str(refresh)
-                },
-                status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        username = serializer.validated_data.get('username')
+        user = get_object_or_404(User, username=username)
+        access = AccessToken.for_user(user)
+        user.confirmation_code = None
+        user.save()
+        return Response(
+            {'token': str(access)},
+            status=status.HTTP_200_OK
+        )
 
 
 class UserProfileView(views.APIView):
@@ -98,7 +96,7 @@ class UserProfileView(views.APIView):
 
 
 class UsersViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
+    queryset = User.objects.all()
     serializer_class = serializers.UsersSerializer
     permission_classes = (IsAdmin, )
     filter_backends = (SearchFilter,)
