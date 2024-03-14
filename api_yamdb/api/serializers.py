@@ -5,8 +5,9 @@ import string
 from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
@@ -166,7 +167,10 @@ class TitleReadSerializer(serializers.ModelSerializer):
         read_only=True,
         many=True
     )
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.IntegerField(
+        source='reviews__score__avg',
+        read_only=True
+    )
 
     class Meta:
         model = Title
@@ -179,25 +183,28 @@ class ReviewSerializer(serializers.ModelSerializer):
         slug_field='username',
         default=serializers.CurrentUserDefault()
     )
+    score = serializers.IntegerField(
+        min_value=MIN_SCORE_VALUE,
+        max_value=MAX_SCORE_VALUE
+    )
 
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
-    def validate_score(self, value):
-        if not (MIN_SCORE_VALUE <= value <= MAX_SCORE_VALUE):
-            raise serializers.ValidationError(
-                'The score must be in the range from 1 to 10!'
-            )
-        return value
-
     def validate(self, data):
-        title = get_object_or_404(
-            Title, id=self.context['view'].kwargs['title_id']
-        )
         user = self.context['request'].user
+        title = self.context['view'].kwargs['title_id']
+        if not Title.objects.filter(id=title).exists():
+            return Response(
+                'This title does not exist!',
+                status=status.HTTP_404_NOT_FOUND
+            )
         if (
-            Review.objects.filter(title=title, author=user).exists()
+            Review.objects.filter(
+                author=user,
+                title=title
+            ).exists()
             and self.context['request'].method == 'POST'
         ):
             raise serializers.ValidationError(

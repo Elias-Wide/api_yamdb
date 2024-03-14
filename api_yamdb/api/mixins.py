@@ -26,5 +26,7 @@ class ReviewCommentMixin(PutNotAllowedMixin, viewsets.ModelViewSet):
     permission_classes = (IsStaffOrAuthorOrReadOnly,)
 
     @staticmethod
-    def get_db_object(db_object_model, object_id):
+    def get_db_object(db_object_model, object_id, title=None):
+        if title:
+            get_object_or_404(db_object_model, id=object_id, title=title)
         return get_object_or_404(db_object_model, id=object_id)
