@@ -3,8 +3,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import CheckConstraint, Q
 
+from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE, TEXT_FIELD_LENGTH
 from reviews.validators import validate_year
-from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
 
 
 class CustomUserManager(BaseUserManager):
@@ -84,7 +84,7 @@ class CustomUser(AbstractUser):
 
 class Category(models.Model):
     name = models.CharField(
-        max_length=255,
+        max_length=TEXT_FIELD_LENGTH,
         verbose_name='Name'
     )
     slug = models.SlugField(
@@ -103,7 +103,7 @@ class Category(models.Model):
 
 class Genre(models.Model):
     name = models.CharField(
-        max_length=255,
+        max_length=TEXT_FIELD_LENGTH,
         verbose_name='Name'
     )
     slug = models.SlugField(unique=True, verbose_name='Slug')
@@ -119,7 +119,7 @@ class Genre(models.Model):
 
 class Title(models.Model):
     name = models.CharField(
-        max_length=255,
+        max_length=TEXT_FIELD_LENGTH,
         verbose_name='Name'
     )
     year = models.SmallIntegerField(
@@ -135,7 +135,7 @@ class Title(models.Model):
         blank=True
     )
     description = models.TextField(
-        max_length=255,
+        max_length=TEXT_FIELD_LENGTH,
         null=True,
         blank=True,
         verbose_name='Description'
