@@ -208,6 +208,7 @@ class Review(models.Model):
             )
         ]
         ordering = ('pub_date',)
+        default_related_name = 'reviews'
 
     def str(self):
         return self.text

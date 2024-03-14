@@ -36,7 +36,7 @@ class TitleFilter(filters.FilterSet):
 
 
 class TitleViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(Avg('rating'))
+    queryset = Title.objects.annotate(Avg('reviews__score')).order_by('name')
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
