@@ -156,7 +156,6 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def to_representation(self, title):
-        """Определяет какой сериализатор будет использоваться для чтения."""
         return TitleReadSerializer(title).data
 
 
