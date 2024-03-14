@@ -1,5 +1,6 @@
 from django.contrib.auth import admin
 from django.contrib import admin, auth
+from rest_framework.authtoken.models import TokenProxy as DRFToken
 
 from reviews.models import Category, Genre, Title, Review, Comment
 from users.models import User
@@ -86,3 +87,4 @@ class UsertAdmin(admin.ModelAdmin):
 
 admin.site.empty_value_display = 'Not specified'
 admin.site.unregister(auth.models.Group)
+admin.site.unregister(DRFToken)
