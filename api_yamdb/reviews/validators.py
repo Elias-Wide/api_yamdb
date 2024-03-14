@@ -2,6 +2,5 @@ import datetime as dt
 
 
 def validate_year(year):
-    now_year = dt.date.today()
-    if year > now_year.year:
+    if year > dt.date.today().year:
         raise ValueError(f'Incorrect year {year}')

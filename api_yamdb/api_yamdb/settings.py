@@ -21,10 +21,11 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'api',
     'reviews',
+    'users',
     'django_filters'
 ]
 
-AUTH_USER_MODEL = 'reviews.CustomUser'
+AUTH_USER_MODEL = 'users.User'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.yandex.ru'

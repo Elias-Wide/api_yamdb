@@ -5,11 +5,13 @@ import string
 from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers
+from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title
+from users.models import User
 from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
 
 
@@ -37,7 +39,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         username = attrs.get('username')
         confirmation_code = attrs.get('confirmation_code')
-        user = get_object_or_404(CustomUser, username=username)
+        user = get_object_or_404(User, username=username)
         if confirmation_code != user.confirmation_code:
             raise ValidationError('Incorrect confirmation code')
         return attrs
@@ -48,26 +50,23 @@ class SignUpSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=150, required=True)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ('email', 'username')
 
-    def get_existing_user():
-        pass
-
     def validate_email(self, value):
-        existing_user = CustomUser.objects.filter(email=value).first()
+        existing_user = User.objects.filter(email=value).first()
         if existing_user and existing_user.username != self.initial_data.get(
             'username'
         ):
-            raise serializers.ValidationError("Email must be unique.")
+            raise serializers.ValidationError('Email must be unique.')
         return value
 
     def validate_username(self, value):
-        existing_user = CustomUser.objects.filter(username=value).first()
+        existing_user = User.objects.filter(username=value).first()
         if existing_user and existing_user.email != self.initial_data.get(
             'email'
         ):
-            raise serializers.ValidationError("Username must be unique.")
+            raise serializers.ValidationError('Username must be unique.')
         if not re.match(r'^[\w.@+-]+$', value) or value == 'me':
             raise serializers.ValidationError('Username is invalid.')
         return value
@@ -76,20 +75,10 @@ class SignUpSerializer(serializers.ModelSerializer):
         email = validated_data.get('email')
         username = validated_data.get('username')
         confirmation_code = generate_confirmation_code()
-        existing_user = CustomUser.objects.filter(
-            email=email,
-            username=username
-        ).first()
-        if existing_user:
-            existing_user.confirmation_code = confirmation_code
-            existing_user.save()
-            send_confirmation_email(email, confirmation_code)
-            return existing_user
-
-        user = CustomUser.objects.create_user(
+        user, created = User.objects.get_or_create(
             email=email,
             username=username,
-            confirmation_code=confirmation_code
+            defaults={'confirmation_code': confirmation_code},
         )
         send_confirmation_email(email, confirmation_code)
         return user
@@ -101,7 +90,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     role = serializers.CharField(read_only=True)
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
 
@@ -120,7 +109,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UsersSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = CustomUser
+        model = User
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
 
@@ -155,6 +144,9 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         model = Title
         fields = '__all__'
 
+    def to_representation(self, title):
+        return TitleReadSerializer(title).data
+
 
 class TitleReadSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
@@ -162,7 +154,10 @@ class TitleReadSerializer(serializers.ModelSerializer):
         read_only=True,
         many=True
     )
-    rating = serializers.IntegerField(read_only=True)
+    rating = serializers.IntegerField(
+        source='reviews__score__avg',
+        read_only=True
+    )
 
     class Meta:
         model = Title
@@ -171,29 +166,32 @@ class TitleReadSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
-        queryset=CustomUser.objects.all(),
+        queryset=User.objects.all(),
         slug_field='username',
         default=serializers.CurrentUserDefault()
+    )
+    score = serializers.IntegerField(
+        min_value=MIN_SCORE_VALUE,
+        max_value=MAX_SCORE_VALUE
     )
 
     class Meta:
         fields = ('id', 'text', 'author', 'score', 'pub_date')
         model = Review
 
-    def validate_score(self, value):
-        if not (MIN_SCORE_VALUE <= value <= MAX_SCORE_VALUE):
-            raise serializers.ValidationError(
-                'The score must be in the range from 1 to 10!'
-            )
-        return value
-
     def validate(self, data):
-        title = get_object_or_404(
-            Title, id=self.context['view'].kwargs['title_id']
-        )
         user = self.context['request'].user
+        title = self.context['view'].kwargs['title_id']
+        if not Title.objects.filter(id=title).exists():
+            return Response(
+                'This title does not exist!',
+                status=status.HTTP_404_NOT_FOUND
+            )
         if (
-            Review.objects.filter(title=title, author=user).exists()
+            Review.objects.filter(
+                author=user,
+                title=title
+            ).exists()
             and self.context['request'].method == 'POST'
         ):
             raise serializers.ValidationError(
@@ -204,7 +202,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
-        queryset=CustomUser.objects.all(),
+        queryset=User.objects.all(),
         slug_field='username',
         default=serializers.CurrentUserDefault()
     )
