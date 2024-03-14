@@ -58,7 +58,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         if existing_user and existing_user.username != self.initial_data.get(
             'username'
         ):
-            raise serializers.ValidationError("Email must be unique.")
+            raise serializers.ValidationError('Email must be unique.')
         return value
 
     def validate_username(self, value):
@@ -66,7 +66,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         if existing_user and existing_user.email != self.initial_data.get(
             'email'
         ):
-            raise serializers.ValidationError("Username must be unique.")
+            raise serializers.ValidationError('Username must be unique.')
         if not re.match(r'^[\w.@+-]+$', value) or value == 'me':
             raise serializers.ValidationError('Username is invalid.')
         return value
@@ -145,7 +145,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def to_representation(self, title):
-        """Определяет какой сериализатор будет использоваться для чтения."""
+        '''Определяет какой сериализатор будет использоваться для чтения.'''
         return TitleReadSerializer(title).data
 
 

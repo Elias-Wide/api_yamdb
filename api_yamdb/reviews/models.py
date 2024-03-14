@@ -102,7 +102,7 @@ class Review(models.Model):
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        verbose_name="Title"
+        verbose_name='Title'
     )
     text = models.TextField(verbose_name='Review text')
     author = models.ForeignKey(
@@ -124,8 +124,8 @@ class Review(models.Model):
     )
 
     class Meta:
-        verbose_name = "Review"
-        verbose_name_plural = "Reviews"
+        verbose_name = 'Review'
+        verbose_name_plural = 'Reviews'
         constraints = [
             models.UniqueConstraint(
                 fields=('author', 'title'), name='unique review'
@@ -156,8 +156,8 @@ class Comment(models.Model):
     )
 
     class Meta:
-        verbose_name = "Comment"
-        verbose_name_plural = "Comments"
+        verbose_name = 'Comment'
+        verbose_name_plural = 'Comments'
         default_related_name = 'comments'
         ordering = ('pub_date',)
 
