@@ -84,20 +84,6 @@ class Title(models.Model):
         return self.name
 
 
-class GenreTitle(models.Model):
-    genre = models.ForeignKey(
-        Genre,
-        on_delete=models.CASCADE
-    )
-    title = models.ForeignKey(
-        Title,
-        on_delete=models.CASCADE
-    )
-
-    def __str__(self):
-        return f'{self.title} {self.genre}'
-
-
 class Review(models.Model):
     title = models.ForeignKey(
         Title,
