@@ -60,6 +60,12 @@ pip install -r requirements.txt
 python3 manage.py migrate
 ```
 
+Загрузить базу данных тестовыми данными из csv-файлов:
+
+```
+python3 manage.py import_csv
+```
+
 Запустить проект:
 
 ```
@@ -71,4 +77,135 @@ python3 manage.py runserver
 Список доступных эндпоинтов и примеры ответов можно получить по адресу:
 ```
 http://127.0.0.1:8000/redoc/
+```
+### Примеры запросов
+```
+Регистрация нового пользователя
+
+Получить код подтверждения на переданный email.
+Права доступа: Доступно без токена.
+Использовать имя 'me' в качестве username запрещено.
+Поля email и username должны быть уникальными.
+```
+POST /api/v1/auth/signup/
+```
+Пример запроса:
+```
+{
+"email": "string",
+"username": "string"
+}
+```
+Пример ответа:
+```
+{
+"email": "string",
+"username": "string"
+}
+```
+Получение JWT-токена
+
+Получение JWT-токена в обмен на username и confirmation code.
+Права доступа: Доступно без токена.
+```
+POST /api/v1/auth/token/
+```
+Пример запроса:
+```
+{
+"username": "string",
+"confirmation_code": "string"
+}
+```
+Пример ответа:
+```
+{
+  "token": "string"
+}
+Получение списка всех категорий
+
+Получить список всех категорий
+Права доступа: Доступно без токена
+```
+GET /api/v1/categories/
+```
+Пример ответа:
+```
+[
+  {
+    "count": 0,
+    "next": "string",
+    "previous": "string",
+    "results": [
+      {
+        "name": "string",
+        "slug": "string"
+      }
+    ]
+  }
+]
+```
+Добавление новой категории
+
+Создать категорию.
+Права доступа: Администратор.
+Поле slug каждой категории должно быть уникальным.
+```
+POST /api/v1/categories/
+```
+Пример запроса:
+```
+{
+  "name": "string",
+  "slug": "string"
+}
+```
+Пример ответа:
+```
+{
+  "name": "string",
+  "slug": "string"
+}
+```
+Удаление категории
+
+Удалить категорию.
+Права доступа: Администратор.
+```
+DELETE /api/v1/categories/{slug}/
+Получение списка всех произведений
+
+Получить список всех объектов.
+Права доступа: Доступно без токена
+```
+GET /api/v1/titles/
+```
+Пример ответа:
+```
+[
+  {
+    "count": 0,
+    "next": "string",
+    "previous": "string",
+    "results": [
+      {
+        "id": 0,
+        "name": "string",
+        "year": 0,
+        "rating": 0,
+        "description": "string",
+        "genre": [
+          {
+            "name": "string",
+            "slug": "string"
+          }
+        ],
+        "category": {
+          "name": "string",
+          "slug": "string"
+        }
+      }
+    ]
+  }
+]
 ```

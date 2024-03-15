@@ -3,18 +3,17 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from reviews.models import (Category, Comment, CustomUser, Genre, GenreTitle,
+from reviews.models import (Category, Comment, User, Genre,
                             Review, Title)
 
 STATIC_URL = "static/data/"
 TABLES_DICT = {
-    CustomUser: 'users.csv',
+    User: 'users.csv',
     Category: 'category.csv',
     Genre: 'genre.csv',
     Title: 'titles.csv',
     Review: 'review.csv',
-    Comment: 'comments.csv',
-    GenreTitle: 'genre_title.csv'
+    Comment: 'comments.csv'
 }
 
 
@@ -32,9 +31,9 @@ class Command(BaseCommand):
                         if file_name == 'titles.csv':
                             row['category'] = Category(int(row['category']))
                         elif file_name == 'review.csv':
-                            row['author'] = CustomUser(int(row['author']))
+                            row['author'] = User(int(row['author']))
                         elif file_name == 'comments.csv':
-                            row['author'] = CustomUser(int(row['author']))
+                            row['author'] = User(int(row['author']))
                         row_list.append(model_class(**row))
                     except Exception as error:
                         self.stdout.write(f'Error in row {row.get("id")}.'
