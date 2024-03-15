@@ -3,7 +3,7 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from reviews.models import (Category, Comment, User, Genre, GenreTitle,
+from reviews.models import (Category, Comment, User, Genre,
                             Review, Title)
 
 STATIC_URL = "static/data/"
@@ -13,8 +13,7 @@ TABLES_DICT = {
     Genre: 'genre.csv',
     Title: 'titles.csv',
     Review: 'review.csv',
-    Comment: 'comments.csv',
-    GenreTitle: 'genre_title.csv'
+    Comment: 'comments.csv'
 }
 
 
