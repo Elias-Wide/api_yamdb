@@ -2,36 +2,36 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import CheckConstraint, Q
 
-from users.consants import (CONFIRMATION_CODE_LENGHT, EMAIL_FIELD_LENGHT,
-                            ROLE_FIELD_LENGHT, USER_ROLE_NAME,
-                            MODERATOR_ROLE_NAME, ADMIN_ROLE_NAME)
+from users.constants import (
+    CONFIRMATION_CODE_LENGTH,
+    EMAIL_FIELD_LENGTH,
+    ROLE_FIELD_LENGTH,
+    USER_ROLE_CHOICES,
+    USER_ROLE_NAME,
+    MODERATOR_ROLE_NAME,
+    ADMIN_ROLE_NAME
+)
 
 
 class User(AbstractUser):
-    USER_ROLE_CHOICES = (
-        ('user', USER_ROLE_NAME),
-        ('moderator', MODERATOR_ROLE_NAME),
-        ('admin', ADMIN_ROLE_NAME),
-    )
-
     confirmation_code = models.CharField(
-        max_length=CONFIRMATION_CODE_LENGHT,
+        max_length=CONFIRMATION_CODE_LENGTH,
         null=True,
         blank=True,
         verbose_name='Confirmation code'
     )
     email = models.EmailField(
-        max_length=EMAIL_FIELD_LENGHT,
+        max_length=EMAIL_FIELD_LENGTH,
         unique=True,
         null=False,
         blank=False,
         verbose_name='Email addres'
     )
     role = models.CharField(
-        max_length=ROLE_FIELD_LENGHT,
+        max_length=ROLE_FIELD_LENGTH,
         choices=USER_ROLE_CHOICES,
-        default='user',
-        verbose_name='Rola'
+        default=USER_ROLE_NAME,
+        verbose_name='Role'
     )
     bio = models.TextField(
         null=True,
@@ -51,3 +51,11 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == ADMIN_ROLE_NAME
+
+    @property
+    def is_moderator(self):
+        return self.role == MODERATOR_ROLE_NAME

@@ -155,7 +155,7 @@ class TitleReadSerializer(serializers.ModelSerializer):
         many=True
     )
     rating = serializers.IntegerField(
-        source='reviews__score__avg',
+        source='title_rating',
         read_only=True
     )
 
