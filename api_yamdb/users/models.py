@@ -7,7 +7,9 @@ from users.constants import (
     EMAIL_FIELD_LENGTH,
     ROLE_FIELD_LENGTH,
     USER_ROLE_CHOICES,
-    DEFAULT_USER_ROLE
+    USER_ROLE_NAME,
+    MODERATOR_ROLE_NAME,
+    ADMIN_ROLE_NAME
 )
 
 
@@ -28,7 +30,7 @@ class User(AbstractUser):
     role = models.CharField(
         max_length=ROLE_FIELD_LENGTH,
         choices=USER_ROLE_CHOICES,
-        default=DEFAULT_USER_ROLE,
+        default=USER_ROLE_NAME,
         verbose_name='Role'
     )
     bio = models.TextField(
@@ -49,3 +51,11 @@ class User(AbstractUser):
 
     def __str__(self) -> str:
         return self.username
+
+    @property
+    def is_admin(self):
+        return self.role == ADMIN_ROLE_NAME
+
+    @property
+    def is_moderator(self):
+        return self.role == MODERATOR_ROLE_NAME

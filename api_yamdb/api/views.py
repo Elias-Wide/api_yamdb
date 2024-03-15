@@ -1,7 +1,7 @@
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import permissions, status, views, viewsets
+from rest_framework import permissions, views, viewsets
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
@@ -23,7 +23,9 @@ from users.models import User
 
 
 class TitleViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
-    queryset = Title.objects.annotate(Avg('reviews__score')).order_by('name')
+    queryset = Title.objects.annotate(title_rating=Avg(
+        'reviews__score'
+    )).order_by('name')
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
@@ -49,10 +51,9 @@ class SignUpView(views.APIView):
 
     def post(self, request, *args, **kwargs):
         serializer = serializers.SignUpSerializer(data=request.data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class TokenView(TokenObtainPairView):
@@ -68,10 +69,7 @@ class TokenView(TokenObtainPairView):
         access = AccessToken.for_user(user)
         user.confirmation_code = None
         user.save()
-        return Response(
-            {'token': str(access)},
-            status=status.HTTP_200_OK
-        )
+        return Response({'token': str(access)})
 
 
 class UserProfileView(views.APIView):
@@ -93,7 +91,7 @@ class UserProfileView(views.APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data)
 
 
 class UsersViewSet(PutNotAllowedMixin, viewsets.ModelViewSet):
