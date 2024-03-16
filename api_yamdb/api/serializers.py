@@ -12,10 +12,15 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import User
-from api.constants import MAX_SCORE_VALUE, MIN_SCORE_VALUE
+from api.constants import (
+    MAX_SCORE_VALUE,
+    MIN_SCORE_VALUE,
+    USERNAME_LENGTH
+)
+from users.constants import CONFIRMATION_CODE_LENGTH, EMAIL_FIELD_LENGTH
 
 
-def generate_confirmation_code(length=6):
+def generate_confirmation_code(length=CONFIRMATION_CODE_LENGTH):
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))
 
@@ -33,8 +38,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         super().__init__(*args, **kwargs)
         del self.fields['password']
         self.fields['username'] = serializers.CharField()
-        self.fields['confirmation_code'] = serializers.CharField(max_length=6,
-                                                                 required=True)
+        self.fields['confirmation_code'] = serializers.CharField(
+            max_length=CONFIRMATION_CODE_LENGTH,
+            required=True
+        )
 
     def validate(self, attrs):
         username = attrs.get('username')
@@ -46,8 +53,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class SignUpSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.CharField(max_length=150, required=True)
+    email = serializers.EmailField(max_length=EMAIL_FIELD_LENGTH,
+                                   required=True)
+    username = serializers.CharField(max_length=USERNAME_LENGTH,
+                                     required=True)
 
     class Meta:
         model = User
@@ -85,8 +94,10 @@ class SignUpSerializer(serializers.ModelSerializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(max_length=254, required=True)
-    username = serializers.CharField(max_length=150, required=True)
+    email = serializers.EmailField(max_length=EMAIL_FIELD_LENGTH,
+                                   required=True)
+    username = serializers.CharField(max_length=USERNAME_LENGTH,
+                                     required=True)
     role = serializers.CharField(read_only=True)
 
     class Meta:
@@ -182,11 +193,6 @@ class ReviewSerializer(serializers.ModelSerializer):
     def validate(self, data):
         user = self.context['request'].user
         title = self.context['view'].kwargs['title_id']
-        if not Title.objects.filter(id=title).exists():
-            return Response(
-                'This title does not exist!',
-                status=status.HTTP_404_NOT_FOUND
-            )
         if (
             Review.objects.filter(
                 author=user,
