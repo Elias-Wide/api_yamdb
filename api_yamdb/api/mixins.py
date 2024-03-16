@@ -1,8 +1,8 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, permissions, viewsets
 from rest_framework.filters import SearchFilter
 
-from api.permissions import IsStaffOrAuthorOrReadOnly, IsAdminOrReadOnly
+from api.permissions import IsStaffOrAuthor, IsAdminOrReadOnly
 
 
 class PutNotAllowedMixin():
@@ -23,10 +23,14 @@ class CategoryGenreMixin(
 
 
 class ReviewCommentMixin(PutNotAllowedMixin, viewsets.ModelViewSet):
-    permission_classes = (IsStaffOrAuthorOrReadOnly,)
 
     @staticmethod
     def get_db_object(db_object_model, object_id, title=None):
         if title:
             get_object_or_404(db_object_model, id=object_id, title=title)
         return get_object_or_404(db_object_model, id=object_id)
+
+    def get_permissions(self):
+        if self.request.user.is_authenticated:
+            return (IsStaffOrAuthor(), )
+        return (permissions.IsAuthenticatedOrReadOnly(),)
